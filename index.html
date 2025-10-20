@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>연산 게임 (난이도 & 모드)</title>
+<style>
+  body { font-family: Arial, sans-serif; text-align: center; margin-top: 60px; background-color: #f2f2f2; }
+  #container { background: white; display: inline-block; padding: 30px 60px; border-radius: 20px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+  #question { font-size: 2em; margin: 20px; font-weight: bold; }
+  input { font-size: 1.5em; padding: 10px; width: 120px; text-align: center; border: 2px solid #ccc; border-radius: 10px; }
+  button { font-size: 1.1em; margin: 10px; padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer; }
+  button:hover { opacity: 0.9; }
+  #submitBtn { background-color: #4CAF50; color: white; }
+  #startBtn { background-color: #2196F3; color: white; }
+  select { font-size: 1.1em; padding: 6px 12px; border-radius: 8px; margin: 10px; }
+  #timer { font-size: 1.5em; color: red; margin-top: 20px; font-weight: bold; }
+  #score { font-size: 1.5em; margin-top: 10px; font-weight: bold; }
+  #stats { font-size: 1.2em; color: #555; margin-top: 15px; }
+</style>
+</head>
+<body>
+  <div id="container">
+    <h2>연산 게임 (60초 챌린지)</h2>
+    <div>
+      <label>난이도: </label>
+      <select id="difficulty">
+        <option value="1">쉬움</option>
+        <option value="2">보통</option>
+        <option value="3">어려움</option>
+      </select>
+      <label>모드: </label>
+      <select id="mode">
+        <option value="add">덧셈</option>
+        <option value="sub">뺄셈</option>
+        <option value="mul">곱셈</option>
+        <option value="div">나눗셈</option>
+        <option value="basic">기본 사칙연산</option>
+        <option value="mixed">혼합 연산</option>
+      </select>
+    </div>
+
+    <div id="timer">남은 시간: 60초</div>
+    <div id="score">점수: 0</div>
+    <div id="question">시작 버튼을 누르세요</div>
+    <div id="feedback"></div>
+    <input type="number" id="answer" placeholder="답 입력" disabled>
+    <div>
+      <button id="submitBtn" onclick="checkAnswer()" disabled>확인</button>
+      <button id="startBtn" onclick="startGame()">게임 시작</button>
+    </div>
+    <div id="stats"></div>
+  </div>
+
+  <script>
+    let currentAnswer;
+    let score = 0;
+    let timeLeft = 60;
+    let timerInterval;
+    let gameActive = false;
+    let totalQuestions = 0;
+    let correctQuestion = 0;
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') checkAnswer();
+    });
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function generateMixedExpression(level) {
+      const range = level === 1 ? 5 : level === 2 ? 9 : 20;
+      let ops = shuffle(['+', '-', '*', '/']).slice(0, 3);
+      let nums = [randomInt(-range, range), randomInt(-range, range), randomInt(-range, range), randomInt(-range, range)];
+
+      let expr = '';
+      for (let i = 0; i < 3; i++) {
+        let n = nums[i] < 0 ? '(' + nums[i] + ')' : nums[i];
+        expr += n + ' ' + ops[i] + ' ';
+      }
+      expr += nums[3] < 0 ? '(' + nums[3] + ')' : nums[3];
+
+      let result = Function('return ' + expr)();
+      return { expr, result: Math.round(result * 100) / 100 };
+    }
+
+    function generateQuestion(level, mode) {
+      const range = level === 1 ? 10 : level === 2 ? 20 : 20;
+      if (mode === 'mixed') return generateMixedExpression(level);
+      let op = ['+', '-', '*', '/'][mode === 'basic' ? randomInt(0, 3): mode === 'add' ? 0 : level === 'sub' ? 1 : level === 'mul' ? 2 : level === 'div' ? 3 : 3];
+      let a = randomInt(0, range);
+      let b = randomInt(0, range) || 1;
+      if (op === '-' && level === 1 && b > a) {
+        b = randomInt(0, a)
+      }
+      if (op === '/') {
+        b = randomInt(0, 5)
+        a = b * randomInt(0, 20);
+      }
+      let expr = `${a} ${op} ${b}`;
+      let result = Function('return ' + expr)();
+      return { expr, result: Math.round(result * 100) / 100 };
+    }
+
+    function startGame() {
+      score = 0;
+      totalQuestions = 0;
+      timeLeft = 60;
+      gameActive = true;
+      document.getElementById('score').textContent = `점수: ${score}`;
+      document.getElementById('timer').textContent = `남은 시간: ${timeLeft}초!`;
+      document.getElementById('answer').value = '';
+      document.getElementById('answer').disabled = false;
+      document.getElementById('submitBtn').disabled = false;
+      document.getElementById('answer').focus();
+      document.getElementById('stats').textContent = '';
+      nextQuestion();
+      clearInterval(timerInterval);
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = `남은 시간: ${timeLeft}초!`;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function nextQuestion() {
+      if (!gameActive) return;
+      const level = parseInt(document.getElementById('difficulty').value);
+      const mode = document.getElementById('mode').value;
+      
+      const q = generateQuestion(level, mode);
+      document.getElementById('question').textContent = q.expr;
+      currentAnswer = q.result;
+      totalQuestions++;
+    }
+
+    function checkAnswer() {
+      if (!gameActive) return;
+      const userAnswer = parseFloat(document.getElementById('answer').value);
+      if (!isNaN(userAnswer) && Math.abs(userAnswer - currentAnswer) < 0.01) {
+        correctQuestion++;
+        score += 10;
+        document.getElementById('score').textContent = `점수: ${score} !`;
+        document.getElementById('feedback').textContent='✅ 정답!'; 
+        document.getElementById('feedback').style.color='green';
+      } else {
+        score -= 3;
+        if (score < 0) {
+          score = 0;
+        }
+        document.getElementById('score').textContent = `점수: ${score} !`;
+        document.getElementById('feedback').textContent=`❌ 오답! 정답: ${currentAnswer}`; 
+        document.getElementById('feedback').style.color='red';
+      }
+      document.getElementById('answer').value = '';
+      document.getElementById('answer').focus();
+      nextQuestion();
+    }
+
+    function endGame() {
+      gameActive = false;
+      const accuracy = ((correctQuestion / totalQuestions) * 100).toFixed(1);
+      if (score < 100) {
+        document.getElementById('question').textContent = `어후.... 힘내세요. 점수는 ${score} 입니다.`;
+      }
+      else if (score < 300) {
+        document.getElementById('question').textContent = `할 수 있어요. 화이팅! 점수는 ${score} 입니다.`;
+      }
+      else if (score < 500) {
+        document.getElementById('question').textContent = `잘했어요! 이대로만! 점수는 ${score} 입니다.`;
+      }
+      else {
+        document.getElementById('question').textContent = `오! 여긴 저도 못한 곳인데! 점수는 ${score} 입니다!`;
+      }
+      document.getElementById('answer').disabled = true;
+      document.getElementById('submitBtn').disabled = true;
+      document.getElementById('stats').textContent = `총 문제 수: ${totalQuestions}, 정확도: ${accuracy}%`;
+    }
+  </script>
+</body>
+</html>
