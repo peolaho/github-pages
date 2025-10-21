@@ -17,6 +17,8 @@
   #timer { font-size: 1.5em; color: red; margin-top: 20px; font-weight: bold; }
   #score { font-size: 1.5em; margin-top: 10px; font-weight: bold; }
   #stats { font-size: 1.2em; color: #555; margin-top: 15px; }
+  #myProgress { width:80%; background-color: gray; margin: 10px auto;}
+  #myBar { width: 100%; height:10px; background-color:#4CAF50; float: left;}
 </style>
 </head>
 <body>
@@ -36,12 +38,15 @@
         <option value="mul">곱셈</option>
         <option value="div">나눗셈</option>
         <option value="basic">기본 사칙연산</option>
-        <option value="mixed">혼합 연산</option>
       </select>
     </div>
 
-    <div id="timer">남은 시간: 60초</div>
+    <div id="myProgress">
+      <div id="myBar"></div>
+    </div>
+    <div id="timer">남은 시간: 60.0초</div>
     <div id="score">점수: 0</div>
+    <div id="proverb"></div>
     <div id="question">시작 버튼을 누르세요</div>
     <div id="feedback"></div>
     <input type="number" id="answer" placeholder="답 입력" disabled>
@@ -60,6 +65,7 @@
     let gameActive = false;
     let totalQuestions = 0;
     let correctQuestion = 0;
+    let endTimer = 0;
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') checkAnswer();
@@ -77,45 +83,82 @@
       return array;
     }
 
-    function generateMixedExpression(level) {
-      const range = level === 1 ? 5 : level === 2 ? 9 : 20;
-      let ops = shuffle(['+', '-', '*', '/']).slice(0, 3);
-      let nums = [randomInt(-range, range), randomInt(-range, range), randomInt(-range, range), randomInt(-range, range)];
-
-      let expr = '';
-      for (let i = 0; i < 3; i++) {
-        let n = nums[i] < 0 ? '(' + nums[i] + ')' : nums[i];
-        expr += n + ' ' + ops[i] + ' ';
-      }
-      expr += nums[3] < 0 ? '(' + nums[3] + ')' : nums[3];
-
-      let result = Function('return ' + expr)();
-      return { expr, result: Math.round(result * 100) / 100 };
-    }
-
     function generateQuestion(level, mode) {
-      const range = level === 1 ? 10 : level === 2 ? 20 : 20;
-      if (mode === 'mixed') return generateMixedExpression(level);
-      let op = ['+', '-', '*', '/'][mode === 'basic' ? randomInt(0, 3): mode === 'add' ? 0 : level === 'sub' ? 1 : level === 'mul' ? 2 : level === 'div' ? 3 : 3];
-      let a = randomInt(0, range);
-      let b = randomInt(0, range) || 1;
+      const range = level === 1 ? 10 : level === 2 ? 20 : level === 3 ? 50 : 50;
+      let op = ''
+      let a = randomInt(1, range);
+      let b = randomInt(1, range);
+      if (level === 3) {
+        a = randomInt(-range, range);
+        b = randomInt(-range, range);
+      }
+      if (mode === 'add') op = '+';
+      if (mode === 'sub') op = '-';
+      if (mode === 'mul') {
+        op = '*';
+        a /= 2;
+        b /= 2;
+      }
+      if (mode === 'div') {
+        op = '/';
+        b /= 2;
+        a = b * randomInt(0, range/2 );
+      }
+      if (mode === 'basic') op = ['+', '-', '*', '/'][randomInt(0, 3)];
+
       if (op === '-' && level === 1 && b > a) {
-        b = randomInt(0, a)
+        b = randomInt(0, a);
       }
-      if (op === '/') {
-        b = randomInt(0, 5)
-        a = b * randomInt(0, 20);
+      let expr = '';
+      if (a >= 0) {
+        expr += a;
       }
-      let expr = `${a} ${op} ${b}`;
+      else  {
+        expr += `(${a})`;
+      }
+      expr += op;
+      if (b >= 0) {
+        expr += b;
+      }
+      else {
+        expr += `(${b})`;
+      }
+
       let result = Function('return ' + expr)();
       return { expr, result: Math.round(result * 100) / 100 };
     }
 
     function startGame() {
+      document.getElementById('score').textContent = "점수: 0";
+      document.getElementById('proverb').textContent = '';  
+      endTimer = 0;
+      setTimeout(function() { 
       score = 0;
       totalQuestions = 0;
       timeLeft = 60;
       gameActive = true;
+      const mode = document.getElementById('mode').value;
+      const level = parseInt(document.getElementById('difficulty').value);
+
+      if (mode === 'div') {
+        timeLeft += 40;
+      }
+      else if (mode === 'mul') {
+        timeLeft += 20;
+      }
+      else if (mode === 'basic') {
+        timeLeft += 40;
+      }
+
+      if (level === 2) {
+        timeLeft = (timeLeft / 4) * 3;
+      }
+      else if (level === 3) {
+        timeLeft /= 2;
+      }
+
+      startTimer(timeLeft)
+
       document.getElementById('score').textContent = `점수: ${score}`;
       document.getElementById('timer').textContent = `남은 시간: ${timeLeft}초!`;
       document.getElementById('answer').value = '';
@@ -124,16 +167,18 @@
       document.getElementById('answer').focus();
       document.getElementById('stats').textContent = '';
       nextQuestion();
-      clearInterval(timerInterval);
+      clearInterval(timerInterval); 
 
       timerInterval = setInterval(() => {
-        timeLeft--;
+        timeLeft -= 0.1;
+        timeLeft = Math.round(timeLeft * 10) / 10
         document.getElementById('timer').textContent = `남은 시간: ${timeLeft}초!`;
         if (timeLeft <= 0) {
           clearInterval(timerInterval);
           endGame();
         }
-      }, 1000);
+      }, 100);
+      }, 10);
     }
 
     function nextQuestion() {
@@ -157,7 +202,7 @@
         document.getElementById('feedback').textContent='✅ 정답!'; 
         document.getElementById('feedback').style.color='green';
       } else {
-        score -= 3;
+        score -= 5;
         if (score < 0) {
           score = 0;
         }
@@ -169,26 +214,69 @@
       document.getElementById('answer').focus();
       nextQuestion();
     }
-
+    proverb = [
+    "'첫술에 배부를까' - 속담", 
+    "'쥐구멍에도 볕들날 있다.' - 속담", 
+    "'개구리 올챙이 적 기억 못한다.' - 속담", 
+    "'희망을 갖지 않는 것은 어리석은 일이다. 그건 죄악이라고 그는 생각했다.' - 노인과 바다", 
+    "'모두들 성장하기 위해 태생지를 떠난다.' - 외딴방", 
+    "'많이 걷고 많이 읽은 자는, 많이 보고 많이 알게된다' - 돈키호테"]
     function endGame() {
       gameActive = false;
-      const accuracy = ((correctQuestion / totalQuestions) * 100).toFixed(1);
+      document.getElementById('score').textContent = '';
+      document.getElementById('proverb').textContent = '오늘의 명언: '
       if (score < 100) {
-        document.getElementById('question').textContent = `어후.... 힘내세요. 점수는 ${score} 입니다.`;
+        document.getElementById('proverb').textContent += proverb[randomInt(0,2)]
+        document.getElementById('question').textContent = `힘내세요! 점수는 ${score}점 입니다.`;
       }
-      else if (score < 300) {
-        document.getElementById('question').textContent = `할 수 있어요. 화이팅! 점수는 ${score} 입니다.`;
+      else if (score < 200) {
+        document.getElementById('proverb').textContent += proverb[randomInt(0,2)]
+        document.getElementById('question').textContent = `할 수 있어요! 점수는 ${score}점 입니다.`;
+      }
+      else if (score < 350) {
+        document.getElementById('proverb').textContent += proverb[randomInt(0,2)]
+        document.getElementById('question').textContent = `좋은데요! 점수는 ${score}점 입니다.`;
       }
       else if (score < 500) {
-        document.getElementById('question').textContent = `잘했어요! 이대로만! 점수는 ${score} 입니다.`;
+        document.getElementById('proverb').textContent += proverb[randomInt(3,5)]
+        document.getElementById('question').textContent += `잘했어요! 이대로만! 점수는 ${score}점 입니다.`;
+      }
+      else if (score < 600){
+        document.getElementById('proverb').textContent += proverb[randomInt(3,5)]
+        document.getElementById('question').textContent = `오! 여긴 저도 못한 곳인데! 점수는 ${score}점 입니다!`;
       }
       else {
-        document.getElementById('question').textContent = `오! 여긴 저도 못한 곳인데! 점수는 ${score} 입니다!`;
+        document.getElementById('proverb').textContent += proverb[randomInt(3,5)]
+        document.getElementById('question').textContent = ` 인정합니다! 점수는 ${score}점 입니다!`;
       }
       document.getElementById('answer').disabled = true;
       document.getElementById('submitBtn').disabled = true;
-      document.getElementById('stats').textContent = `총 문제 수: ${totalQuestions}, 정확도: ${accuracy}%`;
+      document.getElementById('stats').textContent = `총 문제 수: ${totalQuestions}, 맞힌 문제 수: ${correctQuestion}개`;
     }
+    function startTimer(startTime) {
+      endTimer = 1;
+      let i = startTime
+      if (i === startTime) {
+        var elem = document.getElementById("myBar");
+        var width = 100;
+        var id = setInterval(frame, 10);
+        function frame() {
+          if (width <= 0) {
+              clearInterval(id);
+
+              alert("끝~~!");
+          } else {
+              width -= 1/startTime;
+              elem.style.width = width + "%";
+              if (endTimer === 0) {
+                clearInterval(id);
+                return;
+              }
+          }
+        }
+      }
+    }
+
   </script>
 </body>
 </html>
