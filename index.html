@@ -5,23 +5,148 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>연산 게임 (난이도 & 모드)</title>
 <style>
-  body { font-family: Arial, sans-serif; text-align: center; margin-top: 60px; background-color: #f2f2f2; }
-  #container { background: white; display: inline-block; padding: 30px 60px; border-radius: 20px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
-  #question { font-size: 2em; margin: 20px; font-weight: bold; }
-  input { font-size: 1.5em; padding: 10px; width: 120px; text-align: center; border: 2px solid #ccc; border-radius: 10px; }
-  button { font-size: 1.1em; margin: 10px; padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer; }
-  button:hover { opacity: 0.9; }
-  #submitBtn { background-color: #4CAF50; color: white; }
-  #startBtn { background-color: #2196F3; color: white; }
-  select { font-size: 1.1em; padding: 6px 12px; border-radius: 8px; margin: 10px; }
-  #timer { font-size: 1.5em; color: red; margin-top: 20px; font-weight: bold; }
-  #score { font-size: 1.5em; margin-top: 10px; font-weight: bold; }
-  #stats { font-size: 1.2em; color: #555; margin-top: 15px; }
-  #myProgress { width:80%; background-color: gray; margin: 10px auto;}
-  #myBar { width: 100%; height:10px; background-color:#4CAF50; float: left;}
+  body { 
+    font-family: Arial, sans-serif; 
+    text-align: center; 
+    margin-top: 60px; 
+    background-color: #f2f2f2; 
+  }
+  #container { 
+    background: white; 
+    display: inline-block; 
+    padding: 40px 70px; 
+    border-radius: 20px; 
+    box-shadow: 0 0 15px rgba(0,0,0,0.1); 
+  }
+  #question { 
+    font-size: 2em; 
+    margin: 20px; 
+    font-weight: bold; 
+  }
+  input { 
+    font-size: 1.5em; 
+    padding: 10px; 
+    width: 100px; 
+    text-align: center; 
+    border: 0px solid #ccc; 
+    border-radius: 10px; 
+    background: #f5f5f5; 
+  }
+  button { 
+    font-size: 1.1em; margin: 5px; 
+    padding: 10px 10px; 
+    border-radius: 10px; 
+    border: none; 
+    cursor: pointer; 
+  }
+  button:hover { 
+    opacity: 0.9; 
+  }
+  #submitBtn { 
+    background-color: #4CAF50; 
+    color: white; 
+  }
+  #startBtn { 
+    background-color: #2196F3; 
+    color: white; 
+  }
+  #endBtn { 
+    background-color: #ccc; 
+    color: white; 
+  }
+  select { 
+    font-size: 1.1em; 
+    padding: 6px 12px; 
+    border-radius: 8px; 
+    margin: 10px; 
+    border: 0px; 
+    background: #f5f5f5;
+  }
+  #timer { 
+    font-size: 1.5em; 
+    color: red; 
+    margin-top: 20px; 
+    font-weight: bold; 
+  }
+  #score { 
+    font-size: 1.5em; 
+    margin-top: 10px; 
+    font-weight: bold; 
+  }
+  #stats { 
+    font-size: 1.2em; 
+    color: #555; 
+    margin-top: 15px; 
+  }
+  #myProgress { 
+    width:80%; 
+    background-color: gray; 
+    margin: 10px auto;
+  }
+  #mode { 
+    width: 20%; 
+    margin: 0px;
+  }
+  #myBar { 
+    width: 100%; 
+    height:10px; 
+    background-color:#4CAF50; 
+    float: left;
+  }
+  #minusBtn { 
+    height: 50px; 
+  }
+  .input-box { 
+    height: 70px;
+  }
+  input[type="checkbox"] {
+    appearance: none;
+    width: 3px;
+    height: 3px;
+    background-color: grey;
+    border: 0px solid #ccc;
+    cursor: pointer;  
+    position: absolute;
+  }
+  input[type="checkbox"]:checked {
+    background-color: #007bff;
+    border-color: #007bff;
+  }
+  input[type="checkbox"]:checked::after {
+    display: none;
+  }
+  #alert {
+    width: 100%;
+    border: 0px solid;
+    border-radius: 10px;
+    background-color: antiquewhite;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    margin-bottom: 10px;
+  }
+  #closeAlert {
+    border: 0px;
+    width: 5px;
+    height: 5px;
+    border-radius: 10px;
+    background-color: #b60000;
+    float: right;
+    margin: 10px;
+  }
+  #content {
+    font-size: 1.5em;
+    white-space: pre-wrap;
+    overflow: scroll;
+    padding: 50px;
+    height: 400px;
+    color: red;
+  }
 </style>
 </head>
 <body>
+  <div id="alert" style="display: none; height: 0px;">
+    <button id="closeAlert" onclick="closeStatisic()"></button>
+    <div id="content"></div>
+  </div>
   <div id="container">
     <h2>연산 게임 (60초 챌린지)</h2>
     <div>
@@ -39,6 +164,10 @@
         <option value="div">나눗셈</option>
         <option value="basic">기본 사칙연산</option>
       </select>
+      <div id="allowed">
+        <label>음수: </label>
+        <input type="checkbox" id="allowedMinus" onclick="disableMinus()">
+      </div>
     </div>
 
     <div id="myProgress">
@@ -49,15 +178,21 @@
     <div id="proverb"></div>
     <div id="question">시작 버튼을 누르세요</div>
     <div id="feedback"></div>
-    <input type="number" id="answer" placeholder="답 입력" disabled>
+    <div class="input-box">
+      <button id="minusBtn" onclick="putMinus()" disabled>-</button>
+      <input type="number" id="answer" placeholder="답 입력" disabled>
+    </div>
     <div>
       <button id="submitBtn" onclick="checkAnswer()" disabled>확인</button>
       <button id="startBtn" onclick="startGame()">게임 시작</button>
+      <button id="endBtn" onclick="endGameInstead()">게임 끋</button>
+      <button id="showStatistic" onclick="showStatistic()" style="display: none;">통계 보기</button>
     </div>
     <div id="stats"></div>
   </div>
 
   <script>
+
     let currentAnswer;
     let score = 0;
     let timeLeft = 60;
@@ -66,21 +201,33 @@
     let totalQuestions = 0;
     let correctQuestion = 0;
     let endTimer = 0;
+    let enabledMinus = true;
+    let expressions = '';
+    let wrongAnswer = [];
+
+    const allowedMinus = document.querySelector("#allowedMinus");
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') checkAnswer();
     });
 
+    function disableMinus() {
+      if (enabledMinus) {
+        document.querySelector("#minusBtn").style = 'display: none;';
+        enabledMinus = false;
+      }
+      else {
+        document.querySelector("#minusBtn").style = '';
+        enabledMinus = true;
+      }
+    }
+
     function randomInt(min, max) {
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    function shuffle(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-      return array;
+    function putMinus() {
+      document.getElementById('answer').value *= '-1';
     }
 
     function generateQuestion(level, mode) {
@@ -88,7 +235,7 @@
       let op = ''
       let a = randomInt(1, range);
       let b = randomInt(1, range);
-      if (level === 3) {
+      if (level >= 2 && enabledMinus) {
         a = randomInt(-range, range);
         b = randomInt(-range, range);
       }
@@ -129,25 +276,30 @@
     }
 
     function startGame() {
+      allowedMinus.disabled = true;
       document.getElementById('score').textContent = "점수: 0";
       document.getElementById('proverb').textContent = '';  
+      document.getElementById('showStatistic').style = 'display: none;';
+      document.getElementById('endBtn').style = ``;
+      const content = document.getElementById('content'); 
+      content.textContent = '';
       endTimer = 0;
       setTimeout(function() { 
       score = 0;
       totalQuestions = 0;
+      correctQuestion = 0;
       timeLeft = 60;
       gameActive = true;
+      expressions = '';
+      wrongAnswer = [];
       const mode = document.getElementById('mode').value;
       const level = parseInt(document.getElementById('difficulty').value);
 
-      if (mode === 'div') {
+      if (mode === 'div' || mode === 'basic') {
         timeLeft += 40;
       }
       else if (mode === 'mul') {
         timeLeft += 20;
-      }
-      else if (mode === 'basic') {
-        timeLeft += 40;
       }
 
       if (level === 2) {
@@ -164,6 +316,7 @@
       document.getElementById('answer').value = '';
       document.getElementById('answer').disabled = false;
       document.getElementById('submitBtn').disabled = false;
+      document.getElementById('minusBtn').disabled = false;
       document.getElementById('answer').focus();
       document.getElementById('stats').textContent = '';
       nextQuestion();
@@ -181,6 +334,10 @@
       }, 10);
     }
 
+    function endGameInstead() {
+      timeLeft = 0.1;
+    }
+
     function nextQuestion() {
       if (!gameActive) return;
       const level = parseInt(document.getElementById('difficulty').value);
@@ -188,11 +345,13 @@
       
       const q = generateQuestion(level, mode);
       document.getElementById('question').textContent = q.expr;
+      expressions = q.expr;
+
       currentAnswer = q.result;
-      totalQuestions++;
     }
 
     function checkAnswer() {
+      totalQuestions = 0;
       if (!gameActive) return;
       const userAnswer = parseFloat(document.getElementById('answer').value);
       if (!isNaN(userAnswer) && Math.abs(userAnswer - currentAnswer) < 0.01) {
@@ -206,6 +365,7 @@
         if (score < 0) {
           score = 0;
         }
+        wrongAnswer.push(`${expressions} = ${currentAnswer}`);
         document.getElementById('score').textContent = `점수: ${score} !`;
         document.getElementById('feedback').textContent=`❌ 오답! 정답: ${currentAnswer}`; 
         document.getElementById('feedback').style.color='red';
@@ -222,36 +382,45 @@
     "'모두들 성장하기 위해 태생지를 떠난다.' - 외딴방", 
     "'많이 걷고 많이 읽은 자는, 많이 보고 많이 알게된다' - 돈키호테"]
     function endGame() {
+      endTimer = 0;
+      timeLeft = 0.1;
+      allowedMinus.disabled = false; 
       gameActive = false;
       document.getElementById('score').textContent = '';
-      document.getElementById('proverb').textContent = '오늘의 명언: '
+      document.getElementById('showStatistic').style = '';
       if (score < 100) {
-        document.getElementById('proverb').textContent += proverb[randomInt(0,2)]
+        document.getElementById('proverb').textContent = proverb[randomInt(0,2)]
         document.getElementById('question').textContent = `힘내세요! 점수는 ${score}점 입니다.`;
       }
       else if (score < 200) {
-        document.getElementById('proverb').textContent += proverb[randomInt(0,2)]
+        document.getElementById('proverb').textContent = proverb[randomInt(0,2)]
         document.getElementById('question').textContent = `할 수 있어요! 점수는 ${score}점 입니다.`;
       }
       else if (score < 350) {
-        document.getElementById('proverb').textContent += proverb[randomInt(0,2)]
+        document.getElementById('proverb').textContent = proverb[randomInt(0,2)]
         document.getElementById('question').textContent = `좋은데요! 점수는 ${score}점 입니다.`;
       }
       else if (score < 500) {
-        document.getElementById('proverb').textContent += proverb[randomInt(3,5)]
-        document.getElementById('question').textContent += `잘했어요! 이대로만! 점수는 ${score}점 입니다.`;
+        document.getElementById('proverb').textContent = proverb[randomInt(3,5)]
+        document.getElementById('question').textContent = `잘했어요! 이대로만! 점수는 ${score}점 입니다.`;
       }
       else if (score < 600){
-        document.getElementById('proverb').textContent += proverb[randomInt(3,5)]
+        document.getElementById('proverb').textContent = proverb[randomInt(3,5)]
         document.getElementById('question').textContent = `오! 여긴 저도 못한 곳인데! 점수는 ${score}점 입니다!`;
       }
       else {
-        document.getElementById('proverb').textContent += proverb[randomInt(3,5)]
+        document.getElementById('proverb').textContent = proverb[randomInt(3,5)]
         document.getElementById('question').textContent = ` 인정합니다! 점수는 ${score}점 입니다!`;
       }
       document.getElementById('answer').disabled = true;
       document.getElementById('submitBtn').disabled = true;
+      document.getElementById('minusBtn').disabled = true;
       document.getElementById('stats').textContent = `총 문제 수: ${totalQuestions}, 맞힌 문제 수: ${correctQuestion}개`;
+      const content = document.getElementById('content');
+      for (let i = 0; i < wrongAnswer.length; i++) {
+        content.textContent += ('❌ ' + wrongAnswer[i] + '\n')
+      }
+      document.getElementById('endBtn').style = `display: none;`;
     }
     function startTimer(startTime) {
       endTimer = 1;
@@ -263,8 +432,6 @@
         function frame() {
           if (width <= 0) {
               clearInterval(id);
-
-              alert("끝~~!");
           } else {
               width -= 1/startTime;
               elem.style.width = width + "%";
@@ -275,7 +442,17 @@
           }
         }
       }
+    }    
+
+    function showStatistic() {
+      document.getElementById('container').style = 'display: none;'
+      document.getElementById('alert').style = 'height: 500px;'
     }
+
+    function closeStatisic() {
+      document.getElementById('container').style = ''
+      document.getElementById('alert').style = 'display: none;'
+    } 
 
   </script>
 </body>
